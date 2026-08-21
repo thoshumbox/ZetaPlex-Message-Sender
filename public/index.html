@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>message form</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      padding: 20px;
+
+      background: #111214;
+      color: #f2f3f5;
+
+      font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 500px;
+
+      background: #1e1f22;
+
+      padding: 30px;
+
+      border-radius: 14px;
+
+      box-shadow:
+        0 10px 40px rgba(0, 0, 0, 0.4);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+
+      text-align: center;
+
+      font-size: 28px;
+    }
+
+    .description {
+      margin: 0 0 25px;
+
+      color: #b5bac1;
+
+      text-align: center;
+
+      font-size: 14px;
+    }
+
+    label {
+      display: block;
+
+      margin-bottom: 8px;
+
+      color: #dbdee1;
+
+      font-size: 14px;
+
+      font-weight: 600;
+    }
+
+    .field {
+      margin-bottom: 20px;
+    }
+
+    input,
+    textarea {
+      width: 100%;
+
+      border: 1px solid #313338;
+      border-radius: 8px;
+
+      background: #2b2d31;
+      color: #f2f3f5;
+
+      padding: 12px;
+
+      font-size: 15px;
+
+      outline: none;
+
+      transition:
+        border-color 0.15s,
+        box-shadow 0.15s;
+    }
+
+    input {
+      height: 45px;
+    }
+
+    textarea {
+      min-height: 150px;
+
+      resize: vertical;
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+      color: #949ba4;
+    }
+
+    input:focus,
+    textarea:focus {
+      border-color: #5865f2;
+
+      box-shadow:
+        0 0 0 2px rgba(88, 101, 242, 0.2);
+    }
+
+    .counter {
+      margin-top: 6px;
+
+      color: #949ba4;
+
+      text-align: right;
+
+      font-size: 12px;
+    }
+
+    button {
+      width: 100%;
+
+      height: 45px;
+
+      border: none;
+      border-radius: 8px;
+
+      background: #5865f2;
+      color: white;
+
+      font-size: 15px;
+      font-weight: 600;
+
+      cursor: pointer;
+
+      transition:
+        background 0.15s,
+        opacity 0.15s;
+    }
+
+    button:hover {
+      background: #4752c4;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    #status {
+      min-height: 20px;
+
+      margin-top: 15px;
+
+      text-align: center;
+
+      font-size: 14px;
+    }
+
+    .success {
+      color: #57f287;
+    }
+
+    .error {
+      color: #ed4245;
+    }
+  </style>
+</head>
+
+<body>
+
+  <main class="container">
+
+    <h1>send a message</h1>
+
+    <p class="description">
+      enter your name and message below.
+    </p>
+
+    <form id="messageForm">
+
+      <div class="field">
+        <label for="name">name</label>
+
+        <input
+          id="name"
+          name="name"
+          type="text"
+          maxlength="100"
+          placeholder="enter your name"
+          autocomplete="off"
+          required
+        >
+      </div>
+
+      <div class="field">
+        <label for="message">message</label>
+
+        <textarea
+          id="message"
+          name="message"
+          maxlength="2000"
+          placeholder="write your message..."
+          required
+        ></textarea>
+
+        <div class="counter">
+          <span id="characterCount">0</span>/2000
+        </div>
+      </div>
+
+      <button
+        id="sendButton"
+        type="submit"
+      >
+        send message
+      </button>
+
+      <div id="status"></div>
+
+    </form>
+
+  </main>
+
+  <script>
+    const form = document.getElementById("messageForm");
+    const nameInput = document.getElementById("name");
+    const messageInput = document.getElementById("message");
+    const characterCount = document.getElementById("characterCount");
+    const sendButton = document.getElementById("sendButton");
+    const status = document.getElementById("status");
+
+    messageInput.addEventListener("input", () => {
+      characterCount.textContent = messageInput.value.length;
+    });
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const name = nameInput.value.trim();
+      const message = messageInput.value.trim();
+
+      status.textContent = "";
+      status.className = "";
+
+      if (!name || !message) {
+        status.textContent = "please enter a name and message.";
+        status.className = "error";
+        return;
+      }
+
+      sendButton.disabled = true;
+      sendButton.textContent = "sending...";
+
+      try {
+        const response = await fetch("/api/send", {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json"
+          },
+
+          body: JSON.stringify({
+            name: name,
+            message: message
+          })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            result.error || "failed to send the message."
+          );
+        }
+
+        status.textContent = "message sent successfully!";
+        status.className = "success";
+
+        form.reset();
+
+        characterCount.textContent = "0";
+
+      } catch (error) {
+        status.textContent =
+          error.message || "something went wrong.";
+
+        status.className = "error";
+
+      } finally {
+        sendButton.disabled = false;
+        sendButton.textContent = "send message";
+      }
+    });
+  </script>
+
+</body>
+</html>
